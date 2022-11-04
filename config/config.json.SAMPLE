@@ -1,22 +1,4 @@
 {
     "Token": "BOT_TOKEN",
-    "GuildId": "GUILD_ID",
-    "Notice": {
-        "ChannelId": "CHANNEL_ID",
-        "EmbedTitle": "TITLE",
-        "EmbedDescription": "DESCRIPTION"
-    },
-    "DefaultRoleId": "ROLE_ID",
-    "Roles": [
-        {
-            "id": "assignRoles_ID",
-            "label": "NAME",
-            "roleId": "ROLE_ID"
-        },
-        {
-            "id": "assignRoles_ID",
-            "label": "NAME",
-            "roleId": "ROLE_ID"
-        },
-    ]
+    "GuildId": "GUILD_ID"
 }
