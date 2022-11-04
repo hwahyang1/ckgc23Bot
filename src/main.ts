@@ -61,6 +61,21 @@ const refreshMessage = async () => {
 		);
 	};
 	await (client.channels.cache.get(partRoleConfig.Notice.ChannelId) as typeof TextChannel).send({ embeds: [partRoleMessageEmbed], components: [partRoleMessageButtons] });
+
+	// 추가 요청: 작대기 역할
+	const partRoleDividerMessageEmbed = new EmbedBuilder()
+		.setColor(0xF67720)
+		.setTitle('필수 역할')
+		.setDescription('아래의 역할(버튼)은 필수로 눌러서 가져가세요.');
+		
+	const partRoleDividerMessageButtons = new ActionRowBuilder()
+	.addComponents(
+		new ButtonBuilder()
+			.setCustomId('assignAdditionalPartRoles_Divider')
+			.setLabel('------------------------')
+			.setStyle(ButtonStyle.Primary)
+	);
+	await (client.channels.cache.get(partRoleConfig.Notice.ChannelId) as typeof TextChannel).send({ embeds: [partRoleDividerMessageEmbed], components: [partRoleDividerMessageButtons] });
 	
 	// 게임 역할
 	channel = client.channels.cache.get(gameRoleConfig.Notice.ChannelId) as typeof TextChannel;
@@ -173,7 +188,16 @@ client.on('interactionCreate', async interaction => {
 		}
 	} else if (interaction.isButton()) {
 		if (interaction.guild.id !== config.GuildId) return;
-		if (interaction.customId.startsWith('assignPartRoles_')) { // 분야별 역할
+		if (interaction.customId === 'assignAdditionalPartRoles_Divider') { // 추가 역할
+			try {
+				let roleData = interaction.guild.roles.cache.find(target => target.id === '1038049868347871313');
+				await interaction.member.roles.add(roleData);
+				await interaction.reply({ content: '`------------------------` 역할이 설정되었습니다.', ephemeral: true });
+			} catch (error) {
+				await interaction.reply({ content: `요청을 처리하지 못했습니다.\n\`${error}\``, ephemeral: true });
+				return;
+			}
+		} else if (interaction.customId.startsWith('assignPartRoles_')) { // 분야별 역할
 			let role = partRoleConfig.Roles.find(target => target.id === interaction.customId);
 			if (role === undefined) {
 				await interaction.reply({ content: `요청을 처리하지 못했습니다.\n\`정의되지 않은 ID 입니다: ${interaction.customId}\``, ephemeral: true });
@@ -181,8 +205,14 @@ client.on('interactionCreate', async interaction => {
 			}
 
 			try {
+				for (const role of partRoleConfig.Roles) {
+					let rData = interaction.member.roles.cache.find(target => target.id === role.roleId);
+					if (rData !== undefined) {
+						await interaction.member.roles.remove(rData);
+					}
+				};
+
 				let roleData = interaction.guild.roles.cache.find(target => target.id === role.roleId);
-				await interaction.member.roles.remove(interaction.member.roles.cache);
 				await interaction.member.roles.add(roleData);
 				await interaction.reply({ content: `\`${role.label}\` 역할이 설정되었습니다.`, ephemeral: true });
 			} catch (error) {
