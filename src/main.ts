@@ -29,9 +29,9 @@ const refreshSlashCommands = async () => {
 
 const refreshMessage = async () => {
 	const messageEmbed = new EmbedBuilder()
-		.setColor(0x0099FF)
-		.setTitle('정말 멋진 제목')
-		.setDescription('정말 멋진 설명')
+		.setColor(0xF67720)
+		.setTitle(config.Notice.EmbedTitle)
+		.setDescription(config.Notice.EmbedDescription)
 		
 	const messageButtons = new ActionRowBuilder()
 	config.Roles.forEach((role) => {
@@ -42,7 +42,7 @@ const refreshMessage = async () => {
 				.setStyle(ButtonStyle.Primary)
 		);
 	});
-	await (client.channels.cache.get(config.NoticeChannelId) as typeof TextChannel).send({ embeds: [messageEmbed], components: [messageButtons] });
+	await (client.channels.cache.get(config.Notice.ChannelId) as typeof TextChannel).send({ embeds: [messageEmbed], components: [messageButtons] });
 }
 
 /////////////// Event

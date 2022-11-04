@@ -1,7 +1,11 @@
 {
     "Token": "BOT_TOKEN",
     "GuildId": "GUILD_ID",
-    "NoticeChannelId": "CHANNEL_ID",
+    "Notice": {
+        "ChannelId": "CHANNEL_ID",
+        "EmbedTitle": "TITLE",
+        "EmbedDescription": "DESCRIPTION"
+    },
     "DefaultRoleId": "ROLE_ID",
     "Roles": [
         {
