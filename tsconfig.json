@@ -1,0 +1,23 @@
+{
+    "compilerOptions": {
+      "module": "commonjs",
+      "moduleResolution": "node",
+      "target": "es2017",
+      "noImplicitAny": false,
+      "sourceMap": true,
+      "outDir": "./dist",
+      "rootDir": "./src",
+      "emitDecoratorMetadata": true,
+      "experimentalDecorators": true,
+      "importHelpers": true,
+      "forceConsistentCasingInFileNames": true,
+      "lib": [
+        "es2017",
+        "esnext.asynciterable"
+      ]
+    },
+    "exclude": [
+      "node_modules"
+    ]
+  }
+  
