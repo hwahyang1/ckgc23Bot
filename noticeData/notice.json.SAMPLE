@@ -1,0 +1,20 @@
+{
+    "Title": "TITLE",
+    "Description": "DESCRIPTION",
+    "Fields": [
+        {
+            "Title": "TITLE",
+            "Description": "DESCRIPTION"
+        },
+        {
+            "Title": "TITLE",
+            "Description": "DESCRIPTION"
+        },
+        {
+            "Title": "TITLE",
+            "Description": "DESCRIPTION"
+        }
+    ],
+    "Footer": "FOOTER",
+    "Timestamp": true
+}

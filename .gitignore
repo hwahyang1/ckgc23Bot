@@ -145,3 +145,4 @@ dist
 
 dist/
 config/*.json
+noticeData/*.json
