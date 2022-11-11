@@ -1,9 +1,9 @@
 'use strict';
 
 const fs = require('fs');
-const path = require("path");
-import { REST } from '@discordjs/rest';
-import { Routes } from 'discord-api-types/v9';
+const path = require('path');
+const { REST } = require('@discordjs/rest');
+const { Routes } = require('discord-api-types/v9');
 const { Client, GatewayIntentBits, TextChannel, SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionsBitField } = require('discord.js');
 
 const config = require(path.join(__dirname, '..', 'config', 'config.json'));
