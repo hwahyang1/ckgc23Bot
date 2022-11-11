@@ -65,7 +65,7 @@ const refreshMessage = async () => {
 		.setColor(0xF67720)
 		.setTitle(partRoleConfig.Notice.EmbedTitle)
 		.setDescription(partRoleConfig.Notice.EmbedDescription)
-		.setFooter("본 메시지는 상황에 따라 다시 전송 될 수도 있습니다.")
+		.setFooter({text: '본 메시지는 상황에 따라 다시 전송 될 수도 있습니다.'})
 		.setTimestamp(new Date());
 		
 	const partRoleMessageButtons = new ActionRowBuilder()
@@ -84,7 +84,7 @@ const refreshMessage = async () => {
 		.setColor(0xF67720)
 		.setTitle('필수 역할')
 		.setDescription('아래의 역할(버튼)은 필수로 눌러서 가져가세요.')
-		.setFooter("본 메시지는 상황에 따라 다시 전송 될 수도 있습니다.")
+		.setFooter({text: '본 메시지는 상황에 따라 다시 전송 될 수도 있습니다.'})
 		.setTimestamp(new Date());
 		
 	const partRoleDividerMessageButtons = new ActionRowBuilder()
@@ -101,7 +101,7 @@ const refreshMessage = async () => {
 		.setColor(0xF67720)
 		.setTitle(gameRoleConfig.Notice.EmbedTitle)
 		.setDescription(gameRoleConfig.Notice.EmbedDescription)
-		.setFooter("본 메시지는 상황에 따라 다시 전송 될 수도 있습니다.")
+		.setFooter({text: '본 메시지는 상황에 따라 다시 전송 될 수도 있습니다.'})
 		.setTimestamp(new Date());
 		
 	let gameRoleMessageButtons = undefined;
@@ -262,7 +262,8 @@ client.on('interactionCreate', async interaction => {
 
 			try {
 				for (const role of partRoleConfig.Roles) {
-					let rData = interaction.member.roles.cache.find(target => target.id === role.roleId || target.id === role.DefaultRoleId);
+					// 다른 파트의 역할이나 기본 역할 소지 중인지 확인 -> 해제
+					let rData = interaction.member.roles.cache.find(target => target.id === role.roleId || target.id === partRoleConfig.DefaultRoleId);
 					if (rData !== undefined) {
 						await interaction.member.roles.remove(rData);
 					}
