@@ -1,9 +1,10 @@
 {
   "name": "ckgc23bot",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "",
   "main": "dist/main.js",
   "scripts": {
+    "update-dependencies": "npx ncu -u && npm i -D --save",
     "test": "ts-node src/main.ts",
     "build": "tsc --project tsconfig.json",
     "run": "node dist/main.js"
@@ -19,8 +20,8 @@
   },
   "homepage": "https://github.com/hwahyang1/ckgc23Bot#readme",
   "dependencies": {
-    "discord.js": "^14.6.0",
-    "typescript": "^4.8.4"
+    "discord.js": "^14.7.1",
+    "typescript": "^4.9.4"
   },
   "devDependencies": {
     "ts-node": "^10.9.1"

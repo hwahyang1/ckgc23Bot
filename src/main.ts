@@ -19,8 +19,8 @@ const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBit
 const refreshSlashCommands = async () => {
 	const commands:Array<typeof SlashCommandBuilder> = [
 		new SlashCommandBuilder().setName('notice').setDescription('역할 부여 채널에 공지 메시지를 작성합니다. (봇 관리자 전용)')
-		.addBooleanOption((option) => option.setName('기록제거').setDescription('기존 메시지를 제거 할 지 지정합니다.').setRequired(true))
-		.addStringOption((option) => option.setName('파일명').setDescription('해당되는 공지방에 보낼 파일명을 지정합니다.').setRequired(true)),
+			.addBooleanOption((option) => option.setName('기록제거').setDescription('기존 메시지를 제거 할 지 지정합니다.').setRequired(true))
+			.addStringOption((option) => option.setName('파일명').setDescription('해당되는 공지방에 보낼 파일명을 지정합니다.').setRequired(true)),
 
 		new SlashCommandBuilder().setName('add').setDescription('부여받을 수 있는 역할을 추가합니다. (서버 관리자 전용)')
 			.addRoleOption((option) => option.setName('역할').setDescription('추가할 역할을 지정합니다.').setRequired(true))
@@ -79,30 +79,12 @@ const refreshMessage = async () => {
 	};
 	await (client.channels.cache.get(partRoleConfig.Notice.ChannelId) as typeof TextChannel).send({ embeds: [partRoleMessageEmbed], components: [partRoleMessageButtons] });
 
-	// 추가 요청: 작대기 역할
-	const partRoleDividerMessageEmbed = new EmbedBuilder()
-		.setColor(0xF67720)
-		.setTitle('필수 역할')
-		.setDescription('아래의 역할(버튼)은 필수로 눌러서 가져가세요.')
-		.setFooter({text: '본 메시지는 상황에 따라 다시 전송 될 수도 있습니다.'})
-		.setTimestamp(new Date());
-		
-	const partRoleDividerMessageButtons = new ActionRowBuilder()
-	.addComponents(
-		new ButtonBuilder()
-			.setCustomId('assignAdditionalPartRoles_Divider')
-			.setLabel('------------------------')
-			.setStyle(ButtonStyle.Primary)
-	);
-	await (client.channels.cache.get(partRoleConfig.Notice.ChannelId) as typeof TextChannel).send({ embeds: [partRoleDividerMessageEmbed], components: [partRoleDividerMessageButtons] });
-
 	// 게임 역할
 	const gameRoleMessageEmbed = new EmbedBuilder()
 		.setColor(0xF67720)
 		.setTitle(gameRoleConfig.Notice.EmbedTitle)
 		.setDescription(gameRoleConfig.Notice.EmbedDescription)
-		.setFooter({text: '본 메시지는 상황에 따라 다시 전송 될 수도 있습니다.'})
-		.setTimestamp(new Date());
+		.setFooter({text: '본 메시지는 상황에 따라 다시 전송 될 수도 있습니다.'});
 		
 	let gameRoleMessageButtons = undefined;
 	let i = 0;
@@ -137,7 +119,7 @@ client.on('ready', async () => {
 
 client.on('guildMemberAdd', async member => {
 	if (member.guild.id !== config.GuildId) return;
-	let roleData = member.guild.roles.cache.find(target => target.id === partRoleConfig.DefualtRoleId);
+	let roleData = member.guild.roles.cache.find(target => target.id === partRoleConfig.DefaultRoleId);
 	member.roles.add(roleData);
 });
 
@@ -244,16 +226,7 @@ client.on('interactionCreate', async interaction => {
 		}
 	} else if (interaction.isButton()) {
 		if (interaction.guild.id !== config.GuildId) return;
-		if (interaction.customId === 'assignAdditionalPartRoles_Divider') { // 추가 역할
-			try {
-				let roleData = interaction.guild.roles.cache.find(target => target.id === '1038049868347871313');
-				await interaction.member.roles.add(roleData);
-				await interaction.reply({ content: '`------------------------` 역할이 설정되었습니다.', ephemeral: true });
-			} catch (error) {
-				await interaction.reply({ content: `요청을 처리하지 못했습니다.\n\`${error}\``, ephemeral: true });
-				return;
-			}
-		} else if (interaction.customId.startsWith('assignPartRoles_')) { // 분야별 역할
+		if (interaction.customId.startsWith('assignPartRoles_')) { // 분야별 역할 + 추가 역할
 			let role = partRoleConfig.Roles.find(target => target.id === interaction.customId);
 			if (role === undefined) {
 				await interaction.reply({ content: `요청을 처리하지 못했습니다.\n\`정의되지 않은 ID 입니다: ${interaction.customId}\``, ephemeral: true });
@@ -261,6 +234,10 @@ client.on('interactionCreate', async interaction => {
 			}
 
 			try {
+				// 추가 역할
+				let additionalRoleData = interaction.guild.roles.cache.find(target => target.id === '1038049868347871313');
+				await interaction.member.roles.add(additionalRoleData);
+
 				for (const role of partRoleConfig.Roles) {
 					// 다른 파트의 역할이나 기본 역할 소지 중인지 확인 -> 해제
 					let rData = interaction.member.roles.cache.find(target => target.id === role.roleId || target.id === partRoleConfig.DefaultRoleId);
