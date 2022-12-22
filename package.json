@@ -1,7 +1,7 @@
 {
   "name": "ckgc23bot",
-  "version": "1.2.0",
-  "description": "",
+  "version": "1.2.1",
+  "description": "'CKU Game 23' Discord Server Role Management Bot",
   "main": "dist/main.js",
   "scripts": {
     "update-dependencies": "npx ncu -u && npm i -D --save",

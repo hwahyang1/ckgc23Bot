@@ -65,8 +65,7 @@ const refreshMessage = async () => {
 		.setColor(0xF67720)
 		.setTitle(partRoleConfig.Notice.EmbedTitle)
 		.setDescription(partRoleConfig.Notice.EmbedDescription)
-		.setFooter({text: '본 메시지는 상황에 따라 다시 전송 될 수도 있습니다.'})
-		.setTimestamp(new Date());
+		.setFooter({text: '본 메시지는 상황에 따라 다시 전송 될 수도 있습니다.'});
 		
 	const partRoleMessageButtons = new ActionRowBuilder()
 	for (const role of partRoleConfig.Roles) {
@@ -126,103 +125,105 @@ client.on('guildMemberAdd', async member => {
 client.on('interactionCreate', async interaction => {
 	if (interaction.isCommand()) {
 		if (interaction.guild.id !== config.GuildId) return;
-		if (interaction.commandName === 'notice') {
-			if (interaction.member.id !== config.BotOwner) {
-				await interaction.reply({ content: '요청을 처리하지 못했습니다.\n`권한이 없습니다: Bot Owner(config/config.json)`', ephemeral: true });
-				return;
-			}
-
-			const messageFileName: string = interaction.options.getString('파일명');
-			const deleteMessage: boolean = interaction.options.getBoolean('기록제거');
-
-			if (!await fs.existsSync(`noticeData/${messageFileName}`)) {
-				await interaction.reply({ content: `요청을 처리하지 못했습니다.\n\`해당 경로에 파일이 존재하지 않습니다: ${messageFileName}\``, ephemeral: true });
-				return;
-			}
-
-			let rawdata = await fs.readFileSync(`noticeData/${messageFileName}`);
-			let messageData = JSON.parse(rawdata);
-
-			const messageEmbed = new EmbedBuilder().setColor(0xF67720);
-			if (messageData.Title === null)	messageEmbed.setTitle(messageData.Title);
-			if (messageData.Description === null) messageEmbed.setDescription(messageData.Description);
-			if (messageData.Footer === null) messageEmbed.setFooter(messageData.Footer);
-			if (messageData.Timestamp) messageEmbed.setTimestamp(new Date());
-			for (const field of messageData) {
-				messageEmbed.addFields({
-					name: field.Title,
-					value: field.Description
-				});
-			};
-
-			if (deleteMessage) {
+		switch (interaction.commandName) {
+			case 'notice':
+				if (interaction.member.id !== config.BotOwner) {
+					await interaction.reply({ content: '요청을 처리하지 못했습니다.\n`권한이 없습니다: Bot Owner(config/config.json)`', ephemeral: true });
+					return;
+				}
+	
+				const messageFileName: string = interaction.options.getString('파일명');
+				const deleteMessage: boolean = interaction.options.getBoolean('기록제거');
+	
+				if (!await fs.existsSync(`noticeData/${messageFileName}`)) {
+					await interaction.reply({ content: `요청을 처리하지 못했습니다.\n\`해당 경로에 파일이 존재하지 않습니다: ${messageFileName}\``, ephemeral: true });
+					return;
+				}
+	
+				let rawdata = await fs.readFileSync(`noticeData/${messageFileName}`);
+				let messageData = JSON.parse(rawdata);
+	
+				const messageEmbed = new EmbedBuilder().setColor(0xF67720);
+				if (messageData.Title === null)	messageEmbed.setTitle(messageData.Title);
+				if (messageData.Description === null) messageEmbed.setDescription(messageData.Description);
+				if (messageData.Footer === null) messageEmbed.setFooter(messageData.Footer);
+				if (messageData.Timestamp) messageEmbed.setTimestamp(new Date());
+				for (const field of messageData) {
+					messageEmbed.addFields({
+						name: field.Title,
+						value: field.Description
+					});
+				};
+	
+				if (deleteMessage) {
+					await deleteAllMessage();
+				}
+	
+				await (client.channels.cache.get(partRoleConfig.Notice.ChannelId) as typeof TextChannel).send({ embeds: [messageEmbed] });
+				await (client.channels.cache.get(gameRoleConfig.Notice.ChannelId) as typeof TextChannel).send({ embeds: [messageEmbed] });
+	
+				await interaction.reply({ content: '해당 채널에 메시지를 전송했습니다.', ephemeral: true });
+				break;
+			case 'refresh':
+				if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+					await interaction.reply({ content: '요청을 처리하지 못했습니다.\n`권한이 없습니다: Administrator(0x8)`', ephemeral: true });
+					return;
+				}
 				await deleteAllMessage();
-			}
-
-			await (client.channels.cache.get(partRoleConfig.Notice.ChannelId) as typeof TextChannel).send({ embeds: [messageEmbed] });
-			await (client.channels.cache.get(gameRoleConfig.Notice.ChannelId) as typeof TextChannel).send({ embeds: [messageEmbed] });
-
-			await interaction.reply({ content: '해당 채널에 메시지를 전송했습니다.', ephemeral: true });
-		}
-		if (interaction.commandName === 'refresh') {
-			if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
-				await interaction.reply({ content: '요청을 처리하지 못했습니다.\n`권한이 없습니다: Administrator(0x8)`', ephemeral: true });
-				return;
-			}
-			await deleteAllMessage();
-			await refreshMessage();
-			await interaction.reply({ content: '해당 채널에 메시지를 전송했습니다.', ephemeral: true });
-		}
-		if (interaction.commandName === 'add') {
-			if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
-				await interaction.reply({ content: '요청을 처리하지 못했습니다.\n`권한이 없습니다: Administrator(0x8)`', ephemeral: true });
-				return;
-			}
-			
-			const role = interaction.options.getRole('역할');
-			const id: string = interaction.options.getString('영문이름');
-
-			if (!idRule.test(id)) {
-				await interaction.reply({ content: '요청을 처리하지 못했습니다.\n`영문 이름이 규격에 맞지 않습니다: 영어 대/소문자, 1~10자 이내`', ephemeral: true });
-				return;
-			}
-			if (gameRoleConfig.Roles.find(target => target.id === `assignGameRoles_${id}`) !== undefined) {
-				await interaction.reply({ content: `요청을 처리하지 못했습니다.\n\`이미 등록되어 있는 영문 이름입니다: ${id}\``, ephemeral: true });
-				return;
-			}
-			if (gameRoleConfig.Roles.find(target => target.roleId === role.id) !== undefined) {
-				await interaction.reply({ content: `요청을 처리하지 못했습니다.\n\`이미 등록되어 있는 역할입니다: ${role.name}\``, ephemeral: true });
-				return;
-			}
-
-			gameRoleConfig.Roles.push({
-				id: `assignGameRoles_${id}`,
-				label: role.name,
-				roleId: role.id.toString()
-			});
-			await fs.writeFileSync(gameRoleConfigPath, JSON.stringify(gameRoleConfig));
-
-			await refreshMessage();
-			await interaction.reply({ content: '해당 역할을 추가하고 메시지를 갱신했습니다.', ephemeral: true });
-		}
-		if (interaction.commandName === 'remove') {
-			if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
-				await interaction.reply({ content: `요청을 처리하지 못했습니다.\n\`권한이 없습니다: Administrator(0x8)\``, ephemeral: true });
-				return;
-			}
-			
-			const role = interaction.options.getRole('역할');
-			const target = gameRoleConfig.Roles.find(target => target.roleId === role.id);
-			if (target === undefined) {
-				await interaction.reply({ content: `요청을 처리하지 못했습니다.\n\`등록되어 있지 않은 역할입니다: ${role.name}\``, ephemeral: true });
-				return;
-			}
-
-			gameRoleConfig.Roles = gameRoleConfig.Roles.find(target => target.roleId === role.id);
-			await fs.writeFileSync(gameRoleConfigPath, JSON.stringify(gameRoleConfig));
-
-			await refreshMessage();
-			await interaction.reply({ content: '해당 역할을 제거하고 메시지를 갱신했습니다.', ephemeral: true });
+				await refreshMessage();
+				await interaction.reply({ content: '해당 채널에 메시지를 전송했습니다.', ephemeral: true });
+				break;
+			case 'add':
+				if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+					await interaction.reply({ content: '요청을 처리하지 못했습니다.\n`권한이 없습니다: Administrator(0x8)`', ephemeral: true });
+					return;
+				}
+				
+				const addTargetRole = interaction.options.getRole('역할');
+				const id: string = interaction.options.getString('영문이름');
+	
+				if (!idRule.test(id)) {
+					await interaction.reply({ content: '요청을 처리하지 못했습니다.\n`영문 이름이 규격에 맞지 않습니다: 영어 대/소문자, 1~10자 이내`', ephemeral: true });
+					return;
+				}
+				if (gameRoleConfig.Roles.find(target => target.id === `assignGameRoles_${id}`) !== undefined) {
+					await interaction.reply({ content: `요청을 처리하지 못했습니다.\n\`이미 등록되어 있는 영문 이름입니다: ${id}\``, ephemeral: true });
+					return;
+				}
+				if (gameRoleConfig.Roles.find(target => target.roleId === addTargetRole.id) !== undefined) {
+					await interaction.reply({ content: `요청을 처리하지 못했습니다.\n\`이미 등록되어 있는 역할입니다: ${addTargetRole.name}\``, ephemeral: true });
+					return;
+				}
+	
+				gameRoleConfig.Roles.push({
+					id: `assignGameRoles_${id}`,
+					label: addTargetRole.name,
+					roleId: addTargetRole.id.toString()
+				});
+				await fs.writeFileSync(gameRoleConfigPath, JSON.stringify(gameRoleConfig));
+	
+				await refreshMessage();
+				await interaction.reply({ content: '해당 역할을 추가하고 메시지를 갱신했습니다.', ephemeral: true });
+				break;
+			case 'remove':
+				if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+					await interaction.reply({ content: `요청을 처리하지 못했습니다.\n\`권한이 없습니다: Administrator(0x8)\``, ephemeral: true });
+					return;
+				}
+				
+				const removeTargetRole = interaction.options.getRole('역할');
+				const target = gameRoleConfig.Roles.find(target => target.roleId === removeTargetRole.id);
+				if (target === undefined) {
+					await interaction.reply({ content: `요청을 처리하지 못했습니다.\n\`등록되어 있지 않은 역할입니다: ${removeTargetRole.name}\``, ephemeral: true });
+					return;
+				}
+	
+				gameRoleConfig.Roles = gameRoleConfig.Roles.find(target => target.roleId === removeTargetRole.id);
+				await fs.writeFileSync(gameRoleConfigPath, JSON.stringify(gameRoleConfig));
+	
+				await refreshMessage();
+				await interaction.reply({ content: '해당 역할을 제거하고 메시지를 갱신했습니다.', ephemeral: true });
+				break;
 		}
 	} else if (interaction.isButton()) {
 		if (interaction.guild.id !== config.GuildId) return;
