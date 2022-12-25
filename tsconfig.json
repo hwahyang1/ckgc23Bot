@@ -2,7 +2,7 @@
   "compilerOptions": {
     "module": "commonjs",
     "moduleResolution": "node",
-    "target": "es2017",
+    "target": "es2018",
     "noImplicitAny": false,
     "sourceMap": true,
     "outDir": "./dist",
@@ -12,7 +12,7 @@
     "importHelpers": true,
     "forceConsistentCasingInFileNames": true,
     "lib": [
-      "es2017",
+      "es2018",
       "esnext.asynciterable"
     ]
   },
