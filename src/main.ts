@@ -13,7 +13,9 @@ import {
 	ActionRowBuilder,
 	ButtonBuilder,
 	ButtonStyle,
-	PermissionsBitField
+	PermissionsBitField,
+	GuildMember,
+	ChatInputCommandInteraction,
 } from 'discord.js';
 
 const config = require(path.join(__dirname, '..', 'config', 'config.json'));
@@ -52,7 +54,7 @@ const refreshSlashCommands = async () => {
 
 		new SlashCommandBuilder()
 			.setName('add')
-			.setDescription('부여받을 수 있는 역할을 추가합니다. (서버 관리자 전용)')
+			.setDescription('부여받을 수 있는 역할을 추가합니다. (서버 관리자 & 봇 관리자 전용)')
 			.addRoleOption((option) =>
 				option.setName('역할').setDescription('추가할 역할을 지정합니다.').setRequired(true)
 			)
@@ -67,14 +69,14 @@ const refreshSlashCommands = async () => {
 
 		new SlashCommandBuilder()
 			.setName('remove')
-			.setDescription('부여받을 수 있는 역할을 제거합니다. (서버 관리자 전용)')
+			.setDescription('부여받을 수 있는 역할을 제거합니다. (서버 관리자 & 봇 관리자 전용)')
 			.addRoleOption((option) =>
 				option.setName('역할').setDescription('제거할 역할을 지정합니다.').setRequired(true)
 			),
 
 		new SlashCommandBuilder()
 			.setName('refresh')
-			.setDescription('메시지를 다시 발송합니다. (서버 관리자 전용)'),
+			.setDescription('메시지를 다시 발송합니다. (서버 관리자 & 봇 관리자 전용)'),
 	];
 
 	const rest = new REST({ version: '9' }).setToken(config.Token);
@@ -91,7 +93,9 @@ const refreshSlashCommands = async () => {
 
 const deleteAllMessage = async () => {
 	// 분야별 역할
-	let targetChannel:TextChannel = client.channels.cache.get(partRoleConfig.Notice.ChannelId) as TextChannel;
+	let targetChannel: TextChannel = client.channels.cache.get(
+		partRoleConfig.Notice.ChannelId
+	) as TextChannel;
 	let messageManager = targetChannel.messages;
 	let messages = await messageManager.channel.messages.fetch({ limit: 100 });
 	targetChannel.bulkDelete(messages, true);
@@ -111,7 +115,7 @@ const refreshMessage = async () => {
 		.setDescription(partRoleConfig.Notice.EmbedDescription)
 		.setFooter({ text: '본 메시지는 상황에 따라 다시 전송 될 수도 있습니다.' });
 
-	const partRoleMessageButtons = new ActionRowBuilder();
+	const partRoleMessageButtons = new ActionRowBuilder<ButtonBuilder>();
 	for (const role of partRoleConfig.Roles) {
 		partRoleMessageButtons.addComponents(
 			new ButtonBuilder()
@@ -135,7 +139,8 @@ const refreshMessage = async () => {
 	let gameRoleMessageButtons = undefined;
 	let i = 0;
 	for (const role of gameRoleConfig.Roles) {
-		if (gameRoleMessageButtons === undefined) gameRoleMessageButtons = new ActionRowBuilder();
+		if (gameRoleMessageButtons === undefined)
+			gameRoleMessageButtons = new ActionRowBuilder<ButtonBuilder>();
 
 		gameRoleMessageButtons.addComponents(
 			new ButtonBuilder()
@@ -147,16 +152,18 @@ const refreshMessage = async () => {
 		i++;
 		// 5개가 되면 메시지 보내고 새로 하나 더 만듦 (최대 크기)
 		if (i % 5 == 0) {
-			await (
-				client.channels.cache.get(gameRoleConfig.Notice.ChannelId) as TextChannel
-			).send({ embeds: [gameRoleMessageEmbed], components: [gameRoleMessageButtons] });
+			await (client.channels.cache.get(gameRoleConfig.Notice.ChannelId) as TextChannel).send({
+				embeds: [gameRoleMessageEmbed],
+				components: [gameRoleMessageButtons],
+			});
 			gameRoleMessageButtons = undefined;
 		}
 	}
 	if (gameRoleMessageButtons !== undefined)
-		await (
-			client.channels.cache.get(gameRoleConfig.Notice.ChannelId) as TextChannel
-		).send({ embeds: [gameRoleMessageEmbed], components: [gameRoleMessageButtons] });
+		await (client.channels.cache.get(gameRoleConfig.Notice.ChannelId) as TextChannel).send({
+			embeds: [gameRoleMessageEmbed],
+			components: [gameRoleMessageButtons],
+		});
 };
 
 /////////////// Event
@@ -177,11 +184,17 @@ client.on('guildMemberAdd', async (member) => {
 });
 
 client.on('interactionCreate', async (interaction) => {
+	let interactionMember: GuildMember = interaction.member as GuildMember;
+
 	if (interaction.isCommand()) {
+		let commandInteraction: ChatInputCommandInteraction =
+			interaction as ChatInputCommandInteraction;
+
 		if (interaction.guild.id !== config.GuildId) return;
+
 		switch (interaction.commandName) {
 			case 'notice':
-				if (interaction.member.id !== config.BotOwner) {
+				if (interactionMember.id !== config.BotOwner) {
 					await interaction.reply({
 						content:
 							'요청을 처리하지 못했습니다.\n`권한이 없습니다: Bot Owner(config/config.json)`',
@@ -190,8 +203,8 @@ client.on('interactionCreate', async (interaction) => {
 					return;
 				}
 
-				const messageFileName: string = interaction.options.getString('파일명');
-				const deleteMessage: boolean = interaction.options.getBoolean('기록제거');
+				const messageFileName: string = commandInteraction.options.getString('파일명');
+				const deleteMessage: boolean = commandInteraction.options.getBoolean('기록제거');
 
 				if (!(await fs.existsSync(`noticeData/${messageFileName}`))) {
 					await interaction.reply({
@@ -201,7 +214,7 @@ client.on('interactionCreate', async (interaction) => {
 					return;
 				}
 
-				let rawdata = await fs.readFileSync(`noticeData/${messageFileName}`);
+				let rawdata = await fs.readFileSync(`noticeData/${messageFileName}`, 'utf8');
 				let messageData = JSON.parse(rawdata);
 
 				const messageEmbed = new EmbedBuilder().setColor(0xf67720);
@@ -235,27 +248,8 @@ client.on('interactionCreate', async (interaction) => {
 				break;
 			case 'refresh':
 				if (
-					!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator) &&
-					interaction.member.id !== config.BotOwner
-				) {
-					await interaction.reply({
-						content:
-							'요청을 처리하지 못했습니다.\n`권한이 없습니다: Administrator(0x8) || Bot Owner(config/config.json)`',
-						ephemeral: true,
-					});
-					return;
-				}
-				await deleteAllMessage();
-				await refreshMessage();
-				await interaction.reply({
-					content: '해당 채널에 메시지를 전송했습니다.',
-					ephemeral: true,
-				});
-				break;
-			case 'add':
-				if (
-					!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator) &&
-					interaction.member.id !== config.BotOwner
+					!interactionMember.permissions.has(PermissionsBitField.Flags.Administrator) &&
+					interactionMember.id !== config.BotOwner
 				) {
 					await interaction.reply({
 						content:
@@ -265,8 +259,28 @@ client.on('interactionCreate', async (interaction) => {
 					return;
 				}
 
-				const addTargetRole = interaction.options.getRole('역할');
-				const id: string = interaction.options.getString('영문이름');
+				await deleteAllMessage();
+				await refreshMessage();
+				await interaction.reply({
+					content: '해당 채널에 메시지를 전송했습니다.',
+					ephemeral: true,
+				});
+				break;
+			case 'add':
+				if (
+					!interactionMember.permissions.has(PermissionsBitField.Flags.Administrator) &&
+					interactionMember.id !== config.BotOwner
+				) {
+					await interaction.reply({
+						content:
+							'요청을 처리하지 못했습니다.\n`권한이 없습니다: Administrator(0x8) || Bot Owner(config/config.json)`',
+						ephemeral: true,
+					});
+					return;
+				}
+
+				const addTargetRole = commandInteraction.options.getRole('역할');
+				const id: string = commandInteraction.options.getString('영문이름');
 
 				if (!idRule.test(id)) {
 					await interaction.reply({
@@ -304,6 +318,7 @@ client.on('interactionCreate', async (interaction) => {
 				});
 				await fs.writeFileSync(gameRoleConfigPath, JSON.stringify(gameRoleConfig));
 
+				await deleteAllMessage();
 				await refreshMessage();
 				await interaction.reply({
 					content: '해당 역할을 추가하고 메시지를 갱신했습니다.',
@@ -312,8 +327,8 @@ client.on('interactionCreate', async (interaction) => {
 				break;
 			case 'remove':
 				if (
-					!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator) &&
-					interaction.member.id !== config.BotOwner
+					!interactionMember.permissions.has(PermissionsBitField.Flags.Administrator) &&
+					interactionMember.id !== config.BotOwner
 				) {
 					await interaction.reply({
 						content:
@@ -323,7 +338,7 @@ client.on('interactionCreate', async (interaction) => {
 					return;
 				}
 
-				const removeTargetRole = interaction.options.getRole('역할');
+				const removeTargetRole = commandInteraction.options.getRole('역할');
 				const target = gameRoleConfig.Roles.find(
 					(target) => target.roleId === removeTargetRole.id
 				);
@@ -340,6 +355,7 @@ client.on('interactionCreate', async (interaction) => {
 				);
 				await fs.writeFileSync(gameRoleConfigPath, JSON.stringify(gameRoleConfig));
 
+				await deleteAllMessage();
 				await refreshMessage();
 				await interaction.reply({
 					content: '해당 역할을 제거하고 메시지를 갱신했습니다.',
@@ -349,9 +365,11 @@ client.on('interactionCreate', async (interaction) => {
 		}
 	} else if (interaction.isButton()) {
 		if (interaction.guild.id !== config.GuildId) return;
+
 		if (interaction.customId.startsWith('assignPartRoles_')) {
 			// 분야별 역할 + 추가 역할
 			let role = partRoleConfig.Roles.find((target) => target.id === interaction.customId);
+
 			if (role === undefined) {
 				await interaction.reply({
 					content: `요청을 처리하지 못했습니다.\n\`정의되지 않은 ID 입니다: ${interaction.customId}\``,
@@ -365,23 +383,23 @@ client.on('interactionCreate', async (interaction) => {
 				let additionalRoleData = interaction.guild.roles.cache.find(
 					(target) => target.id === '1038049868347871313'
 				);
-				await interaction.member.roles.add(additionalRoleData);
+				await interactionMember.roles.add(additionalRoleData);
 
 				for (const role of partRoleConfig.Roles) {
 					// 다른 파트의 역할이나 기본 역할 소지 중인지 확인 -> 해제
-					let rData = interaction.member.roles.cache.find(
+					let rData = interactionMember.roles.cache.find(
 						(target) =>
 							target.id === role.roleId || target.id === partRoleConfig.DefaultRoleId
 					);
 					if (rData !== undefined) {
-						await interaction.member.roles.remove(rData);
+						await interactionMember.roles.remove(rData);
 					}
 				}
 
 				let roleData = interaction.guild.roles.cache.find(
 					(target) => target.id === role.roleId
 				);
-				await interaction.member.roles.add(roleData);
+				await interactionMember.roles.add(roleData);
 				await interaction.reply({
 					content: `\`${role.label}\` 역할이 설정되었습니다.`,
 					ephemeral: true,
@@ -410,19 +428,19 @@ client.on('interactionCreate', async (interaction) => {
 				let guildRoleData = interaction.guild.roles.cache.find(
 					(target) => target.id === role.roleId
 				);
-				let memberRoleData = interaction.member.roles.cache.find(
+				let memberRoleData = interactionMember.roles.cache.find(
 					(target) => target.id === role.roleId
 				);
 
 				if (memberRoleData == undefined) {
 					// 역할 미소지
-					await interaction.member.roles.add(guildRoleData);
+					await interactionMember.roles.add(guildRoleData);
 					await interaction.reply({
 						content: `\`${role.label}\` 역할이 설정되었습니다.`,
 						ephemeral: true,
 					});
 				} else {
-					await interaction.member.roles.remove(memberRoleData);
+					await interactionMember.roles.remove(memberRoleData);
 					await interaction.reply({
 						content: `\`${role.label}\` 역할이 제거되었습니다.`,
 						ephemeral: true,
@@ -441,7 +459,7 @@ client.on('interactionCreate', async (interaction) => {
 
 /////////////// Entry
 (async () => {
-	let rawdata = await fs.readFileSync(gameRoleConfigPath);
+	let rawdata = await fs.readFileSync(gameRoleConfigPath, 'utf8');
 	gameRoleConfig = JSON.parse(rawdata);
 	client.login(config.Token);
 })();
