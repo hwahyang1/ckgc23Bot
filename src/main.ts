@@ -115,19 +115,53 @@ const refreshMessage = async () => {
 		.setDescription(partRoleConfig.Notice.EmbedDescription)
 		.setFooter({ text: '본 메시지는 상황에 따라 다시 전송 될 수도 있습니다.' });
 
-	const partRoleMessageButtons = new ActionRowBuilder<ButtonBuilder>();
+	let partRoleMessageButtons = undefined;
+	let i = 0;
 	for (const role of partRoleConfig.Roles) {
+		if (partRoleMessageButtons === undefined)
+			partRoleMessageButtons = new ActionRowBuilder<ButtonBuilder>();
+
 		partRoleMessageButtons.addComponents(
 			new ButtonBuilder()
 				.setCustomId(role.id)
 				.setLabel(role.label)
 				.setStyle(ButtonStyle.Primary)
 		);
+
+		i++;
+		// 5개가 되면 메시지 보내고 새로 하나 더 만듦 (최대 크기)
+		if (i % 5 == 0) {
+			if (i == 5) {
+				await (
+					client.channels.cache.get(partRoleConfig.Notice.ChannelId) as TextChannel
+				).send({
+					embeds: [partRoleMessageEmbed],
+					components: [partRoleMessageButtons],
+				});
+			} else {
+				await (
+					client.channels.cache.get(partRoleConfig.Notice.ChannelId) as TextChannel
+				).send({
+					content: 'ㅤ',
+					components: [partRoleMessageButtons],
+				});
+			}
+			partRoleMessageButtons = undefined;
+		}
 	}
-	await (client.channels.cache.get(partRoleConfig.Notice.ChannelId) as TextChannel).send({
-		embeds: [partRoleMessageEmbed],
-		components: [partRoleMessageButtons],
-	});
+	if (partRoleMessageButtons !== undefined) {
+		if (i <= 5) {
+			await (client.channels.cache.get(partRoleConfig.Notice.ChannelId) as TextChannel).send({
+				embeds: [partRoleMessageEmbed],
+				components: [partRoleMessageButtons],
+			});
+		} else {
+			await (client.channels.cache.get(partRoleConfig.Notice.ChannelId) as TextChannel).send({
+				content: 'ㅤ',
+				components: [partRoleMessageButtons],
+			});
+		}
+	}
 
 	// 게임 역할
 	const gameRoleMessageEmbed = new EmbedBuilder()
@@ -137,7 +171,7 @@ const refreshMessage = async () => {
 		.setFooter({ text: '본 메시지는 상황에 따라 다시 전송 될 수도 있습니다.' });
 
 	let gameRoleMessageButtons = undefined;
-	let i = 0;
+	i = 0;
 	for (const role of gameRoleConfig.Roles) {
 		if (gameRoleMessageButtons === undefined)
 			gameRoleMessageButtons = new ActionRowBuilder<ButtonBuilder>();
@@ -152,18 +186,37 @@ const refreshMessage = async () => {
 		i++;
 		// 5개가 되면 메시지 보내고 새로 하나 더 만듦 (최대 크기)
 		if (i % 5 == 0) {
+			if (i == 5) {
+				await (
+					client.channels.cache.get(gameRoleConfig.Notice.ChannelId) as TextChannel
+				).send({
+					embeds: [gameRoleMessageEmbed],
+					components: [gameRoleMessageButtons],
+				});
+			} else {
+				await (
+					client.channels.cache.get(gameRoleConfig.Notice.ChannelId) as TextChannel
+				).send({
+					content: 'ㅤ',
+					components: [gameRoleMessageButtons],
+				});
+			}
+			partRoleMessageButtons = undefined;
+		}
+	}
+	if (partRoleMessageButtons !== undefined) {
+		if (i <= 5) {
 			await (client.channels.cache.get(gameRoleConfig.Notice.ChannelId) as TextChannel).send({
 				embeds: [gameRoleMessageEmbed],
 				components: [gameRoleMessageButtons],
 			});
-			gameRoleMessageButtons = undefined;
+		} else {
+			await (client.channels.cache.get(gameRoleConfig.Notice.ChannelId) as TextChannel).send({
+				content: 'ㅤ',
+				components: [gameRoleMessageButtons],
+			});
 		}
 	}
-	if (gameRoleMessageButtons !== undefined)
-		await (client.channels.cache.get(gameRoleConfig.Notice.ChannelId) as TextChannel).send({
-			embeds: [gameRoleMessageEmbed],
-			components: [gameRoleMessageButtons],
-		});
 };
 
 /////////////// Event
