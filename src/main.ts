@@ -37,22 +37,6 @@ const client = new Client({
 const refreshSlashCommands = async () => {
 	const commands = [
 		new SlashCommandBuilder()
-			.setName('notice')
-			.setDescription('역할 부여 채널에 공지 메시지를 작성합니다. (봇 관리자 전용)')
-			.addBooleanOption((option) =>
-				option
-					.setName('기록제거')
-					.setDescription('기존 메시지를 제거 할 지 지정합니다.')
-					.setRequired(true)
-			)
-			.addStringOption((option) =>
-				option
-					.setName('파일명')
-					.setDescription('해당되는 공지방에 보낼 파일명을 지정합니다.')
-					.setRequired(true)
-			),
-
-		new SlashCommandBuilder()
 			.setName('add')
 			.setDescription('부여받을 수 있는 역할을 추가합니다. (서버 관리자 & 봇 관리자 전용)')
 			.addRoleOption((option) =>
@@ -201,10 +185,10 @@ const refreshMessage = async () => {
 					components: [gameRoleMessageButtons],
 				});
 			}
-			partRoleMessageButtons = undefined;
+			gameRoleMessageButtons = undefined;
 		}
 	}
-	if (partRoleMessageButtons !== undefined) {
+	if (gameRoleMessageButtons !== undefined) {
 		if (i <= 5) {
 			await (client.channels.cache.get(gameRoleConfig.Notice.ChannelId) as TextChannel).send({
 				embeds: [gameRoleMessageEmbed],
@@ -246,59 +230,6 @@ client.on('interactionCreate', async (interaction) => {
 		if (interaction.guild.id !== config.GuildId) return;
 
 		switch (interaction.commandName) {
-			case 'notice':
-				if (interactionMember.id !== config.BotOwner) {
-					await interaction.reply({
-						content:
-							'요청을 처리하지 못했습니다.\n`권한이 없습니다: Bot Owner(config/config.json)`',
-						ephemeral: true,
-					});
-					return;
-				}
-
-				const messageFileName: string = commandInteraction.options.getString('파일명');
-				const deleteMessage: boolean = commandInteraction.options.getBoolean('기록제거');
-
-				if (!(await fs.existsSync(`noticeData/${messageFileName}`))) {
-					await interaction.reply({
-						content: `요청을 처리하지 못했습니다.\n\`해당 경로에 파일이 존재하지 않습니다: ${messageFileName}\``,
-						ephemeral: true,
-					});
-					return;
-				}
-
-				let rawdata = await fs.readFileSync(`noticeData/${messageFileName}`, 'utf8');
-				let messageData = JSON.parse(rawdata);
-
-				const messageEmbed = new EmbedBuilder().setColor(0xf67720);
-				if (messageData.Title === null) messageEmbed.setTitle(messageData.Title);
-				if (messageData.Description === null)
-					messageEmbed.setDescription(messageData.Description);
-				if (messageData.Footer === null) messageEmbed.setFooter(messageData.Footer);
-				if (messageData.Timestamp) messageEmbed.setTimestamp(new Date());
-				for (const field of messageData) {
-					messageEmbed.addFields({
-						name: field.Title,
-						value: field.Description,
-					});
-				}
-
-				if (deleteMessage) {
-					await deleteAllMessage();
-				}
-
-				await (
-					client.channels.cache.get(partRoleConfig.Notice.ChannelId) as TextChannel
-				).send({ embeds: [messageEmbed] });
-				await (
-					client.channels.cache.get(gameRoleConfig.Notice.ChannelId) as TextChannel
-				).send({ embeds: [messageEmbed] });
-
-				await interaction.reply({
-					content: '해당 채널에 메시지를 전송했습니다.',
-					ephemeral: true,
-				});
-				break;
 			case 'refresh':
 				if (
 					!interactionMember.permissions.has(PermissionsBitField.Flags.Administrator) &&
