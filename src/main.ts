@@ -148,6 +148,11 @@ const refreshMessage = async () => {
 	}
 
 	// 게임 역할
+
+	// 얘는 데이터를 다시 불러오고 시작함
+	let rawdata = await fs.readFileSync(gameRoleConfigPath, 'utf8');
+	gameRoleConfig = JSON.parse(rawdata);
+
 	const gameRoleMessageEmbed = new EmbedBuilder()
 		.setColor(0xf67720)
 		.setTitle(gameRoleConfig.Notice.EmbedTitle)
@@ -201,6 +206,25 @@ const refreshMessage = async () => {
 			});
 		}
 	}
+
+	//gameRoleMessageButtons = undefined;
+	gameRoleMessageButtons = new ActionRowBuilder<ButtonBuilder>();
+	gameRoleMessageButtons.addComponents(
+		new ButtonBuilder()
+			.setCustomId('assignGameRoles_getAll')
+			.setLabel('전체 선택')
+			.setStyle(ButtonStyle.Primary)
+	);
+	gameRoleMessageButtons.addComponents(
+		new ButtonBuilder()
+			.setCustomId('assignGameRoles_outAll')
+			.setLabel('전체 취소')
+			.setStyle(ButtonStyle.Primary)
+	);
+	await (client.channels.cache.get(gameRoleConfig.Notice.ChannelId) as TextChannel).send({
+		content: 'ㅤ',
+		components: [gameRoleMessageButtons],
+	});
 };
 
 /////////////// Event
@@ -213,7 +237,10 @@ client.on('ready', async () => {
 });
 
 client.on('guildMemberAdd', async (member) => {
+	// 지정되지 않은 Guild의 요청 무시
 	if (member.guild.id !== config.GuildId) return;
+
+	// 입장 시, 기본 역할(파트역할 미배정) 부여
 	let roleData = member.guild.roles.cache.find(
 		(target) => target.id === partRoleConfig.DefaultRoleId
 	);
@@ -223,14 +250,17 @@ client.on('guildMemberAdd', async (member) => {
 client.on('interactionCreate', async (interaction) => {
 	let interactionMember: GuildMember = interaction.member as GuildMember;
 
+	// Slash Command Interaction
 	if (interaction.isCommand()) {
 		let commandInteraction: ChatInputCommandInteraction =
 			interaction as ChatInputCommandInteraction;
 
+		// 지정되지 않은 Guild의 요청 무시
 		if (interaction.guild.id !== config.GuildId) return;
 
 		switch (interaction.commandName) {
 			case 'refresh':
+				// 권한 체크
 				if (
 					!interactionMember.permissions.has(PermissionsBitField.Flags.Administrator) &&
 					interactionMember.id !== config.BotOwner
@@ -251,6 +281,7 @@ client.on('interactionCreate', async (interaction) => {
 				});
 				break;
 			case 'add':
+				// 권한 체크
 				if (
 					!interactionMember.permissions.has(PermissionsBitField.Flags.Administrator) &&
 					interactionMember.id !== config.BotOwner
@@ -266,6 +297,7 @@ client.on('interactionCreate', async (interaction) => {
 				const addTargetRole = commandInteraction.options.getRole('역할');
 				const id: string = commandInteraction.options.getString('영문이름');
 
+				// 정규식 불일치
 				if (!idRule.test(id)) {
 					await interaction.reply({
 						content:
@@ -274,6 +306,8 @@ client.on('interactionCreate', async (interaction) => {
 					});
 					return;
 				}
+
+				// 영문 ID 중복
 				if (
 					gameRoleConfig.Roles.find((target) => target.id === `assignGameRoles_${id}`) !==
 					undefined
@@ -284,6 +318,8 @@ client.on('interactionCreate', async (interaction) => {
 					});
 					return;
 				}
+
+				// 역할 중복
 				if (
 					gameRoleConfig.Roles.find((target) => target.roleId === addTargetRole.id) !==
 					undefined
@@ -295,6 +331,7 @@ client.on('interactionCreate', async (interaction) => {
 					return;
 				}
 
+				// 역할 목록 변수에 대상 역할 추가하고 저장 -> 파일로 출력
 				gameRoleConfig.Roles.push({
 					id: `assignGameRoles_${id}`,
 					label: addTargetRole.name,
@@ -310,6 +347,7 @@ client.on('interactionCreate', async (interaction) => {
 				});
 				break;
 			case 'remove':
+				// 권한 체크
 				if (
 					!interactionMember.permissions.has(PermissionsBitField.Flags.Administrator) &&
 					interactionMember.id !== config.BotOwner
@@ -326,6 +364,8 @@ client.on('interactionCreate', async (interaction) => {
 				const target = gameRoleConfig.Roles.find(
 					(target) => target.roleId === removeTargetRole.id
 				);
+
+				// 역할 미등록 상태
 				if (target === undefined) {
 					await interaction.reply({
 						content: `요청을 처리하지 못했습니다.\n\`등록되어 있지 않은 역할입니다: ${removeTargetRole.name}\``,
@@ -334,6 +374,7 @@ client.on('interactionCreate', async (interaction) => {
 					return;
 				}
 
+				// 역할 목록 변수에 대상 역할 제거하고 저장 -> 파일로 출력
 				gameRoleConfig.Roles = gameRoleConfig.Roles.find(
 					(target) => target.roleId === removeTargetRole.id
 				);
@@ -347,13 +388,16 @@ client.on('interactionCreate', async (interaction) => {
 				});
 				break;
 		}
-	} else if (interaction.isButton()) {
+	}
+	// Button Interaction
+	else if (interaction.isButton()) {
+		// 지정되지 않은 Guild의 요청 무시
 		if (interaction.guild.id !== config.GuildId) return;
 
+		// 분야별 역할 + 추가 역할
 		if (interaction.customId.startsWith('assignPartRoles_')) {
-			// 분야별 역할 + 추가 역할
+			// 대상 역할 정보 취득
 			let role = partRoleConfig.Roles.find((target) => target.id === interaction.customId);
-
 			if (role === undefined) {
 				await interaction.reply({
 					content: `요청을 처리하지 못했습니다.\n\`정의되지 않은 ID 입니다: ${interaction.customId}\``,
@@ -363,14 +407,14 @@ client.on('interactionCreate', async (interaction) => {
 			}
 
 			try {
-				// 추가 역할
+				// 추가 역할(작대기 역할) 부여하고 시작
 				let additionalRoleData = interaction.guild.roles.cache.find(
 					(target) => target.id === '1038049868347871313'
 				);
 				await interactionMember.roles.add(additionalRoleData);
 
+				// Memeber가 다른 파트의 역할이나 기본 역할 소지 중인지 확인 -> 해제
 				for (const role of partRoleConfig.Roles) {
-					// 다른 파트의 역할이나 기본 역할 소지 중인지 확인 -> 해제
 					let rData = interactionMember.roles.cache.find(
 						(target) =>
 							target.id === role.roleId || target.id === partRoleConfig.DefaultRoleId
@@ -380,6 +424,7 @@ client.on('interactionCreate', async (interaction) => {
 					}
 				}
 
+				// 대상 역할 부여
 				let roleData = interaction.guild.roles.cache.find(
 					(target) => target.id === role.roleId
 				);
@@ -397,8 +442,23 @@ client.on('interactionCreate', async (interaction) => {
 			}
 		}
 
+		// 게임 역할
 		if (interaction.customId.startsWith('assignGameRoles_')) {
-			// 게임 역할
+			// 특수 버튼
+			switch (interaction.customId) {
+				case 'assignGameRoles_getAll':
+					for (const role of partRoleConfig.Roles) {
+						await interactionMember.roles.add(role.roleId);
+					}
+					break;
+				case 'assignGameRoles_outAll':
+					for (const role of partRoleConfig.Roles) {
+						await interactionMember.roles.remove(role.roleId);
+					}
+					break;
+			}
+
+			// 대상 역할 정보 취득
 			let role = gameRoleConfig.Roles.find((target) => target.id === interaction.customId);
 			if (role === undefined) {
 				interaction.reply({
@@ -409,6 +469,7 @@ client.on('interactionCreate', async (interaction) => {
 			}
 
 			try {
+				// Member의 소지 중인 역할 확인 -> 대상 역할을 가지고 있으면 해제, 가지고 있지 않으면 부여
 				let guildRoleData = interaction.guild.roles.cache.find(
 					(target) => target.id === role.roleId
 				);
@@ -442,8 +503,4 @@ client.on('interactionCreate', async (interaction) => {
 });
 
 /////////////// Entry
-(async () => {
-	let rawdata = await fs.readFileSync(gameRoleConfigPath, 'utf8');
-	gameRoleConfig = JSON.parse(rawdata);
-	client.login(config.Token);
-})();
+client.login(config.Token);
