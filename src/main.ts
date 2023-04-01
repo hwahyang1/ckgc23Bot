@@ -222,7 +222,7 @@ const refreshMessage = async () => {
 			.setStyle(ButtonStyle.Primary)
 	);
 	await (client.channels.cache.get(gameRoleConfig.Notice.ChannelId) as TextChannel).send({
-		content: 'ㅤ',
+		content: 'ㅤ\n※ `전체 취소` 버튼은 에러가 발생하는 것이 정상 동작입니다.',
 		components: [gameRoleMessageButtons],
 	});
 };
@@ -447,15 +447,34 @@ client.on('interactionCreate', async (interaction) => {
 			// 특수 버튼
 			switch (interaction.customId) {
 				case 'assignGameRoles_getAll':
-					for (const role of partRoleConfig.Roles) {
-						await interactionMember.roles.add(role.roleId);
+					for (const role of gameRoleConfig.Roles) {
+						let rData = interactionMember.roles.cache.find(
+							(target) => target.id === role.roleId
+						);
+						if (rData === undefined) {
+							await interactionMember.roles.add(role.roleId);
+						}
 					}
-					break;
+					await interaction.reply({
+						content: '전체 역할이 설정되었습니다.',
+						ephemeral: true,
+					});
+					return;
 				case 'assignGameRoles_outAll':
-					for (const role of partRoleConfig.Roles) {
-						await interactionMember.roles.remove(role.roleId);
+					for (const role of gameRoleConfig.Roles) {
+						let rData = interactionMember.roles.cache.find(
+							(target) => target.id === role.roleId
+						);
+						if (rData !== undefined) {
+							await interactionMember.roles.remove(rData);
+						}
 					}
-					break;
+					//TODO: 시간이 초과되어서 그런 건지 Unknown Interaction 에러가 발생함
+					/*await interaction.reply({
+						content: '전체 역할이 제거되었습니다.',
+						ephemeral: true,
+					});*/
+					return;
 			}
 
 			// 대상 역할 정보 취득
@@ -503,4 +522,8 @@ client.on('interactionCreate', async (interaction) => {
 });
 
 /////////////// Entry
-client.login(config.Token);
+(async () => {
+	let rawdata = await fs.readFileSync(gameRoleConfigPath, 'utf8');
+	gameRoleConfig = JSON.parse(rawdata);
+	client.login(config.Token);
+})();
