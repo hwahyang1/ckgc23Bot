@@ -3,7 +3,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { REST } from '@discordjs/rest';
-import { Routes } from 'discord-api-types/v9';
+import { Routes } from 'discord-api-types/v10';
 import {
 	Client,
 	GatewayIntentBits,
@@ -23,7 +23,7 @@ const partRoleConfig = require(path.join(__dirname, '..', 'config', 'partRole.js
 const gameRoleConfigPath = path.join(__dirname, '..', 'config', 'gameRole.json');
 let gameRoleConfig = undefined;
 
-const idRule = /^[a-zA-Z]{1,10}$/;
+const idRule = /^[a-zA-Z]{1,20}$/;
 
 const client = new Client({
 	intents: [
@@ -38,7 +38,9 @@ const refreshSlashCommands = async () => {
 	const commands = [
 		new SlashCommandBuilder()
 			.setName('add')
-			.setDescription('부여받을 수 있는 역할을 추가합니다. (서버 관리자 & 봇 관리자 전용)')
+			.setDescription(
+				'부여받을 수 있는 게임 역할을 추가합니다. (서버 관리자 & 봇 관리자 전용)'
+			)
 			.addRoleOption((option) =>
 				option.setName('역할').setDescription('추가할 역할을 지정합니다.').setRequired(true)
 			)
@@ -53,14 +55,16 @@ const refreshSlashCommands = async () => {
 
 		new SlashCommandBuilder()
 			.setName('remove')
-			.setDescription('부여받을 수 있는 역할을 제거합니다. (서버 관리자 & 봇 관리자 전용)')
+			.setDescription(
+				'부여받을 수 있는 게임 역할을 제거합니다. (서버 관리자 & 봇 관리자 전용)'
+			)
 			.addRoleOption((option) =>
 				option.setName('역할').setDescription('제거할 역할을 지정합니다.').setRequired(true)
 			),
 
 		new SlashCommandBuilder()
 			.setName('refresh')
-			.setDescription('메시지를 다시 발송합니다. (서버 관리자 & 봇 관리자 전용)'),
+			.setDescription('모든 메시지를 다시 발송합니다. (서버 관리자 & 봇 관리자 전용)'),
 	];
 
 	const rest = new REST({ version: '9' }).setToken(config.Token);
@@ -81,13 +85,13 @@ const deleteAllMessage = async () => {
 		partRoleConfig.Notice.ChannelId
 	) as TextChannel;
 	let messageManager = targetChannel.messages;
-	let messages = await messageManager.channel.messages.fetch({ limit: 100 });
+	let messages = await messageManager.channel.messages.fetch({ limit: 1000 });
 	targetChannel.bulkDelete(messages, true);
 
 	// 게임 역할
 	targetChannel = client.channels.cache.get(gameRoleConfig.Notice.ChannelId) as TextChannel;
 	messageManager = targetChannel.messages;
-	messages = await messageManager.channel.messages.fetch({ limit: 100 });
+	messages = await messageManager.channel.messages.fetch({ limit: 1000 });
 	targetChannel.bulkDelete(messages, true);
 };
 
@@ -301,7 +305,7 @@ client.on('interactionCreate', async (interaction) => {
 				if (!idRule.test(id)) {
 					await interaction.reply({
 						content:
-							'요청을 처리하지 못했습니다.\n`영문 이름이 규격에 맞지 않습니다: 영어 대/소문자, 1~10자 이내`',
+							'요청을 처리하지 못했습니다.\n`영문 이름이 규격에 맞지 않습니다: 영어 대/소문자, 1~20자 이내`',
 						ephemeral: true,
 					});
 					return;

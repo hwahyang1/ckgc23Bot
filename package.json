@@ -1,6 +1,6 @@
 {
   "name": "ckgc23bot",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "description": "'CKU Game 23' Discord Server Role Management Bot",
   "main": "dist/main.js",
   "scripts": {
@@ -20,18 +20,18 @@
   },
   "homepage": "https://github.com/hwahyang1/ckgc23Bot#readme",
   "dependencies": {
-    "@discordjs/rest": "^1.6.0",
-    "discord.js": "^14.8.0"
+    "@discordjs/rest": "^1.7.1",
+    "discord.js": "^14.11.0"
   },
   "devDependencies": {
-    "@types/node": "^18.15.11",
-    "@typescript-eslint/eslint-plugin": "^5.57.0",
-    "@typescript-eslint/parser": "^5.57.0",
-    "eslint": "^8.37.0",
+    "@types/node": "^20.3.0",
+    "@typescript-eslint/eslint-plugin": "^5.59.9",
+    "@typescript-eslint/parser": "^5.59.9",
+    "eslint": "^8.42.0",
     "eslint-config-prettier": "^8.8.0",
     "eslint-plugin-prettier": "^4.2.1",
-    "prettier": "^2.8.7",
+    "prettier": "^2.8.8",
     "ts-node": "^10.9.1",
-    "typescript": "^5.0.3"
+    "typescript": "^5.1.3"
   }
 }
