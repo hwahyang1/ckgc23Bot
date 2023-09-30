@@ -23,7 +23,7 @@ import DataManager from './dataManager';
 import { IGuildData, IChannelData, INoticeData, IRoleData } from '../template/IData';
 
 class SlashCommandsManager {
-	public readonly dateRule = /^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$/;
+	private readonly idRule = /^[a-zA-Z]{1,20}$/;
 
 	constructor() {
 		dayjs.extend(customParseFormat);
@@ -112,6 +112,8 @@ class SlashCommandsManager {
 		interactionMember: GuildMember,
 		botOwner: string
 	) {
+		let channelData: IChannelData = null;
+
 		switch (interaction.commandName) {
 			case '채널추가':
 				// 권한 체크
@@ -147,7 +149,7 @@ class SlashCommandsManager {
 					embedTitle: title,
 					embedDescription: description,
 				};
-				const newChannelData: IChannelData = {
+				channelData = {
 					channelId: interaction.channel.id,
 					notice: noticeData,
 					defaultRoleIds: [],
@@ -155,7 +157,7 @@ class SlashCommandsManager {
 					roles: [],
 				};
 
-				DataManager.getInstance().setChannelData(interaction.guild.id, newChannelData);
+				DataManager.getInstance().setChannelData(interaction.guild.id, channelData);
 
 				await DataManager.getInstance().saveData();
 
@@ -230,6 +232,58 @@ class SlashCommandsManager {
 					});
 					return;
 				}
+
+				const addTargetRole = interaction.options.getRole('역할');
+				const id = interaction.options.getString('영문이름');
+
+				// 정규식 불일치
+				if (!this.idRule.test(id)) {
+					await interaction.reply({
+						content:
+							'요청을 처리하지 못했습니다.\n`영문 이름이 규격에 맞지 않습니다: 영어 대/소문자, 1~20자 이내`',
+						ephemeral: true,
+					});
+					return;
+				}
+
+				// 영문 ID 중복
+				if (channelData.roles.find((target) => target.id === id) !== undefined) {
+					await interaction.reply({
+						content: `요청을 처리하지 못했습니다.\n\`이미 등록되어 있는 영문 이름입니다: ${id}\``,
+						ephemeral: true,
+					});
+					return;
+				}
+
+				// 역할 중복
+				if (
+					channelData.roles.find((target) => target.roleId === addTargetRole.id) !==
+					undefined
+				) {
+					await interaction.reply({
+						content: `요청을 처리하지 못했습니다.\n\`이미 등록되어 있는 역할입니다: ${addTargetRole.id}\``,
+						ephemeral: true,
+					});
+					return;
+				}
+
+				// 역할 목록 변수에 대상 역할 추가하고 저장 -> 파일로 출력
+				channelData.roles.push({
+					id: `assignGameRoles_${id}`,
+					label: addTargetRole.name,
+					roleId: addTargetRole.id.toString(),
+				});
+				DataManager.getInstance().deleteChannelData(
+					interaction.guild.id,
+					interaction.channel.id
+				);
+				DataManager.getInstance().setChannelData(interaction.guild.id, channelData);
+				DataManager.getInstance().saveData();
+
+				await interaction.reply({
+					content: '해당 역할을 추가했습니다.',
+					ephemeral: true,
+				});
 				break;
 			case '역할제거':
 				// 권한 체크
@@ -257,6 +311,43 @@ class SlashCommandsManager {
 					});
 					return;
 				}
+
+				const removeTargetRole = interaction.options.getRole('역할');
+				channelData = DataManager.getInstance().getChannelData(
+					interaction.guild.id,
+					interaction.channel.id
+				);
+				const target = channelData.roles.find(
+					(target) => target.roleId === removeTargetRole.id
+				);
+
+				// 역할 미등록 상태
+				if (target === undefined) {
+					await interaction.reply({
+						content: `요청을 처리하지 못했습니다.\n\`등록되어 있지 않은 역할입니다: ${removeTargetRole.id}\``,
+						ephemeral: true,
+					});
+					return;
+				}
+
+				// 역할 목록 변수에 대상 역할 제거하고 저장 -> 파일로 출력
+				const index = channelData.roles.findIndex(
+					(target) => target.roleId === removeTargetRole.id
+				);
+				if (index >= 0) {
+					channelData.roles.splice(index, 1);
+				}
+				DataManager.getInstance().deleteChannelData(
+					interaction.guild.id,
+					interaction.channel.id
+				);
+				DataManager.getInstance().setChannelData(interaction.guild.id, channelData);
+				DataManager.getInstance().saveData();
+
+				await interaction.reply({
+					content: '해당 역할을 제거했습니다.',
+					ephemeral: true,
+				});
 				break;
 			case '역할알림':
 				// 권한 체크
@@ -285,11 +376,11 @@ class SlashCommandsManager {
 					return;
 				}
 
-                let messageManager = interaction.channel.messages;
-                let messages = await messageManager.channel.messages.fetch({ limit: 1000 });
-                interaction.channel.bulkDelete(messages, true);
+				let messageManager = interaction.channel.messages;
+				let messages = await messageManager.channel.messages.fetch({ limit: 1000 });
+				interaction.channel.bulkDelete(messages, true);
 
-				const channelData: IChannelData = DataManager.getInstance().getChannelData(
+				channelData = DataManager.getInstance().getChannelData(
 					interaction.guild.id,
 					interaction.channel.id
 				);

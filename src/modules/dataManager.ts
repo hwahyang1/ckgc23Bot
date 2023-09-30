@@ -55,6 +55,7 @@ class DataManager {
 			};
 			this.setGuildData(guildId, guildData);
 		}
+		// TODO: 중복 대응
 		if (!this.getGuildData(guildId).channels)
 			this.getGuildData(guildId).channels = new Array<IChannelData>();
 		this.getGuildData(guildId).channels.push(channelData);
