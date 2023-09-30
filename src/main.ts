@@ -39,7 +39,22 @@ client.on('ready', async () => {
 	});
 });
 
+client.on('guildMemberAdd', async (member) => {
+	// 봇의 요청 무시
+	if (member.user.bot) return;
+	// 지정되지 않은 Guild의 요청 무시
+	if (!config.guilds.includes(member.guild.id)) return;
+
+	const guildData = DataManager.getInstance().getGuildData(member.guild.id);
+	guildData.defaultRoleIds.forEach((guildId) => {
+		let roleData = member.guild.roles.cache.find((target) => target.id === guildId);
+		member.roles.add(roleData);
+	});
+});
+
 client.on('interactionCreate', async (rawInteraction) => {
+	// 봇의 요청 무시
+	if (rawInteraction.user.bot) return;
 	// 지정되지 않은 Guild의 요청 무시
 	if (!config.guilds.includes(rawInteraction.guild.id)) return;
 

@@ -285,6 +285,10 @@ class SlashCommandsManager {
 					return;
 				}
 
+                let messageManager = interaction.channel.messages;
+                let messages = await messageManager.channel.messages.fetch({ limit: 1000 });
+                interaction.channel.bulkDelete(messages, true);
+
 				const channelData: IChannelData = DataManager.getInstance().getChannelData(
 					interaction.guild.id,
 					interaction.channel.id
@@ -308,7 +312,7 @@ class SlashCommandsManager {
 					messageButtons.addComponents(
 						new ButtonBuilder()
 							.setCustomId(role.id)
-							.setLabel(role.label)
+							.setLabel(`assignRole_${role.label}`)
 							.setStyle(ButtonStyle.Primary)
 					);
 
@@ -347,18 +351,18 @@ class SlashCommandsManager {
 					messageButtons = new ActionRowBuilder<ButtonBuilder>();
 					messageButtons.addComponents(
 						new ButtonBuilder()
-							.setCustomId('assignGameRoles_getAll')
+							.setCustomId('assignRole_getAll')
 							.setLabel('전체 선택')
 							.setStyle(ButtonStyle.Primary)
 					);
 					messageButtons.addComponents(
 						new ButtonBuilder()
-							.setCustomId('assignGameRoles_outAll')
-							.setLabel('전체 취소')
+							.setCustomId('assignRole_outAll')
+							.setLabel('전체 해제')
 							.setStyle(ButtonStyle.Primary)
 					);
 					await interaction.channel.send({
-						content: 'ㅤ\n※ `전체 취소` 버튼은 에러가 발생하는 것이 정상 동작입니다.',
+						content: 'ㅤ',
 						components: [messageButtons],
 					});
 				}
