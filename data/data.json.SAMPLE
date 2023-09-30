@@ -1,0 +1,42 @@
+{
+    "GUILD_ID": {
+        "defaultRoleIds": [
+            "1037296459537715220"
+        ],
+        "channels": [
+            {
+                "channelId": "CHANNEL_ID",
+                "notice": {
+                    "embedTitle": "TITLE",
+                    "embedDescription": "DESCRIPTION"
+                },
+                "defaultRoleIds": [
+                    "ROLE_ID"
+                ],
+                "roleAssignType": "SINGLE | MULTIPLE",
+                "roles": [
+                    {
+                        "id": "ROLE_INTERNAL_ID",
+                        "label": "ROLE_LABEL",
+                        "roleId": "ROLE_ID"
+                    },
+                    {
+                        "id": "ROLE_INTERNAL_ID",
+                        "label": "ROLE_LABEL",
+                        "roleId": "ROLE_ID"
+                    },
+                    {
+                        "id": "ROLE_INTERNAL_ID",
+                        "label": "ROLE_LABEL",
+                        "roleId": "ROLE_ID"
+                    },
+                    {
+                        "id": "ROLE_INTERNAL_ID",
+                        "label": "ROLE_LABEL",
+                        "roleId": "ROLE_ID"
+                    }
+                ]
+            }
+        ]
+    }
+}
