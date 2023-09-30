@@ -37,10 +37,10 @@ class ButtonsManager {
 						ephemeral: true,
 					});
 					for (const role of channelData.roles) {
-						let roleData = interactionMember.roles.cache.find(
-							(target) => target.id === role.id
+						let roleData = interactionMember.guild.roles.cache.find(
+							(target) => target.id === role.roleId
 						);
-						if (roleData === undefined) {
+						if (roleData !== undefined) {
 							await interactionMember.roles.add(roleData);
 						}
 					}
@@ -53,7 +53,7 @@ class ButtonsManager {
 					});
 					for (const role of channelData.roles) {
 						let roleData = interactionMember.roles.cache.find(
-							(target) => target.id === role.id
+							(target) => target.id === role.roleId
 						);
 						if (roleData !== undefined) {
 							await interactionMember.roles.remove(roleData);
@@ -129,10 +129,14 @@ class ButtonsManager {
 					}
 				}
 			} catch (error) {
-				await interaction.reply({
-					content: `요청을 처리하지 못했습니다.\n\`${error}\``,
-					ephemeral: true,
-				});
+				try {
+					await interaction.reply({
+						content: `요청을 처리하지 못했습니다.\n\`${error}\``,
+						ephemeral: true,
+					});
+				} catch (error2) {
+					//
+				}
 				return;
 			}
 		}

@@ -1,6 +1,6 @@
 {
   "name": "ckgc23bot",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "'CKU Game 23' Discord Server Role Management Bot",
   "main": "dist/main.js",
   "scripts": {
