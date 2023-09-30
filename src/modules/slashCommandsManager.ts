@@ -246,6 +246,11 @@ class SlashCommandsManager {
 					return;
 				}
 
+				channelData = DataManager.getInstance().getChannelData(
+					interaction.guild.id,
+					interaction.channel.id
+				);
+
 				// 영문 ID 중복
 				if (channelData.roles.find((target) => target.id === id) !== undefined) {
 					await interaction.reply({
@@ -377,7 +382,7 @@ class SlashCommandsManager {
 				}
 
 				let messageManager = interaction.channel.messages;
-				let messages = await messageManager.channel.messages.fetch({ limit: 1000 });
+				let messages = await messageManager.channel.messages.fetch({ limit: 100 });
 				interaction.channel.bulkDelete(messages, true);
 
 				channelData = DataManager.getInstance().getChannelData(
@@ -390,9 +395,8 @@ class SlashCommandsManager {
 					.setTitle(channelData.notice.embedTitle)
 					.setDescription(channelData.notice.embedDescription)
 					.setFooter({
-						text: '본 메시지는 상황에 따라 다시 전송 될 수도 있습니다 | 마지막 갱신',
-					})
-					.setTimestamp(new Date());
+						text: '본 메시지는 상황에 따라 다시 전송 될 수도 있습니다.',
+					});
 
 				let messageButtons = undefined;
 				let i = 0;
@@ -402,8 +406,8 @@ class SlashCommandsManager {
 
 					messageButtons.addComponents(
 						new ButtonBuilder()
-							.setCustomId(role.id)
-							.setLabel(`assignRole_${role.label}`)
+							.setCustomId(`assignRole_${role.id}`)
+							.setLabel(role.label)
 							.setStyle(ButtonStyle.Primary)
 					);
 
